@@ -1,61 +1,53 @@
 import requests
 
+
 BASE_URL = "http://127.0.0.1:5000"
 
-def menu():
-    print("\n--- Inventory System ---")
-    print("1. View Inventory")
-    print("2. Add Item")
-    print("3. Update Item")
-    print("4. Delete Item")
-    print("5. Fetch Product (API)")
-    print("6. Exit")
 
-while True:
-    menu()
-    choice = input("Choose an option: ")
+def main_loop():
+    while True:
+        print("\n1. View Inventory")
+        print("2. Add Item")
+        print("3. Update Item")
+        print("4. Delete Item")
+        print("5. Fetch Product (Barcode)")
+        print("6. Exit")
 
-    if choice == "1":
-        res = requests.get(f"{BASE_URL}/inventory")
-        print(res.json())
+        choice = input("Choose: ")
 
-    elif choice == "2":
-        name = input("Name: ")
-        brand = input("Brand: ")
-        price = int(input("Price: "))
-        stock = int(input("Stock: "))
+        if choice == "1":
+            r = requests.get(f"{BASE_URL}/inventory")
+            print(r.json())
 
-        res = requests.post(f"{BASE_URL}/inventory", json={
-            "name": name,
-            "brand": brand,
-            "price": price,
-            "stock": stock
-        })
-        print(res.json())
+        elif choice == "2":
+            name = input("Name: ")
+            data = {"name": name}
+            r = requests.post(f"{BASE_URL}/inventory", json=data)
+            print(r.json())
 
-    elif choice == "3":
-        item_id = input("Item ID: ")
-        price = input("New Price: ")
-        stock = input("New Stock: ")
+        elif choice == "3":
+            item_id = input("ID: ")
+            name = input("New Name: ")
+            r = requests.patch(f"{BASE_URL}/inventory/{item_id}", json={"name": name})
+            print(r.json())
 
-        res = requests.patch(f"{BASE_URL}/inventory/{item_id}", json={
-            "price": int(price),
-            "stock": int(stock)
-        })
-        print(res.json())
+        elif choice == "4":
+            item_id = input("ID: ")
+            r = requests.delete(f"{BASE_URL}/inventory/{item_id}")
+            print(r.json())
 
-    elif choice == "4":
-        item_id = input("Item ID: ")
-        res = requests.delete(f"{BASE_URL}/inventory/{item_id}")
-        print(res.json())
+        elif choice == "5":
+            barcode = input("Barcode: ")
+            r = requests.get(f"{BASE_URL}/product/{barcode}")
+            print(r.json())
 
-    elif choice == "5":
-        barcode = input("Enter barcode: ")
-        res = requests.get(f"{BASE_URL}/fetch-product?barcode={barcode}")
-        print(res.json())
+        elif choice == "6":
+            break
 
-    elif choice == "6":
-        break
+        else:
+            print("Invalid choice")
 
-    else:
-        print("Invalid choice")
+
+# Allow manual run
+if __name__ == "__main__":
+    main_loop()
