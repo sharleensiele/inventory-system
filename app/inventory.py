@@ -1,32 +1,86 @@
-inventory = []
-current_id = 1
+import json
+import os
 
+# -----------------------------
+# JSON FILE PATH
+# -----------------------------
+DATA_FILE = os.path.join(os.path.dirname(__file__), "inventory.json")
+
+
+# -----------------------------
+# LOAD DATA
+# -----------------------------
+def load_inventory():
+    if not os.path.exists(DATA_FILE):
+        return []
+
+    with open(DATA_FILE, "r") as f:
+        return json.load(f)
+
+
+# -----------------------------
+# SAVE DATA
+# -----------------------------
+def save_inventory(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+# -----------------------------
+# GET ALL ITEMS
+# -----------------------------
+def get_all_items():
+    return load_inventory()
+
+
+# -----------------------------
+# GET ONE ITEM
+# -----------------------------
 def get_item(item_id):
+    inventory = load_inventory()
     return next((item for item in inventory if item["id"] == item_id), None)
 
-def add_item(data):
-    global current_id
-    item = {
-        "id": current_id,
-        "name": data.get("name"),
-        "price": data.get("price"),
-        "stock": data.get("stock")
-    }
+
+# -----------------------------
+# ADD ITEM
+# -----------------------------
+def add_item(item):
+    inventory = load_inventory()
+
+    new_id = max([i["id"] for i in inventory], default=0) + 1
+    item["id"] = new_id
+
     inventory.append(item)
-    current_id += 1
+    save_inventory(inventory)
+
     return item
 
+
+# -----------------------------
+# UPDATE ITEM
+# -----------------------------
 def update_item(item_id, data):
-    item = get_item(item_id)
-    if item:
-        item.update(data)
-        return item
+    inventory = load_inventory()
+
+    for item in inventory:
+        if item["id"] == item_id:
+            item.update(data)
+            save_inventory(inventory)
+            return item
+
     return None
 
+
+# -----------------------------
+# DELETE ITEM
+# -----------------------------
 def delete_item(item_id):
-    global inventory
-    item = get_item(item_id)
-    if item:
-        inventory = [i for i in inventory if i["id"] != item_id]
-        return True
-    return False
+    inventory = load_inventory()
+
+    new_inventory = [item for item in inventory if item["id"] != item_id]
+
+    if len(new_inventory) == len(inventory):
+        return False
+
+    save_inventory(new_inventory)
+    return True

@@ -1,82 +1,102 @@
-from flask import Flask, request, jsonify
-from .inventory import inventory      # fixed import
-from .services import fetch_product_data  # fixed import
+from flask import Flask, jsonify, request
+
+from app.inventory import (
+    get_all_items,
+    get_item,
+    add_item,
+    update_item,
+    delete_item
+)
+
+from app.services import fetch_product_from_api
+
 
 app = Flask(__name__)
 
-# GET all items
-@app.route('/inventory', methods=['GET'])
-def get_inventory():
-    return jsonify(inventory)
 
-# GET single item
-@app.route('/inventory/<int:item_id>', methods=['GET'])
-def get_item(item_id):
-    item = next((i for i in inventory if i["id"] == item_id), None)
-    if item:
-        return jsonify(item)
-    return jsonify({"error": "Item not found"}), 404
+# -----------------------------
+# HOME
+# -----------------------------
+@app.route("/")
+def home():
+    return jsonify({"message": "Inventory API Running"})
 
-# POST new item
-@app.route('/inventory', methods=['POST'])
-def add_item():
-    data = request.json
 
-    new_item = {
-        "id": len(inventory) + 1,
-        "name": data.get("name"),
-        "brand": data.get("brand", ""),
-        "price": data.get("price"),
-        "stock": data.get("stock")
-    }
+# -----------------------------
+# GET ALL INVENTORY
+# -----------------------------
+@app.route("/inventory", methods=["GET"])
+def inventory():
+    return jsonify(get_all_items()), 200
 
-    inventory.append(new_item)
-    return jsonify(new_item), 201
 
-# PATCH update item
-@app.route('/inventory/<int:item_id>', methods=['PATCH'])
-def update_item(item_id):
-    data = request.json
-    item = next((i for i in inventory if i["id"] == item_id), None)
+# -----------------------------
+# GET SINGLE ITEM
+# -----------------------------
+@app.route("/inventory/<int:item_id>", methods=["GET"])
+def single_item(item_id):
+    item = get_item(item_id)
 
     if not item:
         return jsonify({"error": "Item not found"}), 404
 
-    item.update(data)
-    return jsonify(item)
+    return jsonify(item), 200
 
-@app.route("/")
-def home():
-    return "Inventory API running! Use /inventory to view items."
 
-# DELETE item
-@app.route('/inventory/<int:item_id>', methods=['DELETE'])
-def delete_item(item_id):
-    global inventory
-    inventory[:] = [i for i in inventory if i["id"] != item_id]
-    return jsonify({"message": "Item deleted"})
+# -----------------------------
+# ADD ITEM
+# -----------------------------
+@app.route("/inventory", methods=["POST"])
+def create_item():
+    data = request.json
+    item = add_item(data)
+    return jsonify(item), 201
 
-# FETCH from OpenFoodFacts
-@app.route('/fetch-product', methods=['GET'])
-def fetch_product():
-    barcode = request.args.get("barcode")
-    if not barcode:
-        return jsonify({"error": "Barcode required"}), 400
 
-    product = fetch_product_data(barcode)
-    if not product:
+# -----------------------------
+# UPDATE ITEM
+# -----------------------------
+@app.route("/inventory/<int:item_id>", methods=["PATCH"])
+def update_inventory_item(item_id):
+    data = request.json
+    item = update_item(item_id, data)
+
+    if not item:
+        return jsonify({"error": "Item not found"}), 404
+
+    return jsonify(item), 200
+
+
+# -----------------------------
+# DELETE ITEM
+# -----------------------------
+@app.route("/inventory/<int:item_id>", methods=["DELETE"])
+def delete_inventory_item(item_id):
+    success = delete_item(item_id)
+
+    if not success:
+        return jsonify({"error": "Item not found"}), 404
+
+    return jsonify({"message": "Item deleted"}), 200
+
+
+# -----------------------------
+# FETCH PRODUCT BY BARCODE
+# -----------------------------
+@app.route("/product/<barcode>", methods=["GET"])
+def fetch_product(barcode):
+    result = fetch_product_from_api(barcode)
+
+    print("FINAL RESULT:", result)  # DEBUG
+
+    if result is None:
         return jsonify({"error": "Product not found"}), 404
 
-    new_item = {
-        "id": len(inventory) + 1,
-        "name": product["name"],
-        "brand": product["brand"],
-        "price": 0,
-        "stock": 0
-    }
+    return jsonify(result), 200
 
-    inventory.append(new_item)
-    return jsonify(new_item)
 
+# -----------------------------
+# RUN APP
+# -----------------------------
 if __name__ == "__main__":
     app.run(debug=True)
